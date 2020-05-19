@@ -10,34 +10,40 @@ import re
 
 ###GET FF-ICF PER EVENT TYPE###
 
-def frames_naf_predicate(path_to_doc):
+def frames_naf_predicate(path_to_doc, frame_to_info, languages={'en'}):
     """Load a NAF file, extract the frames from their predicate layers and add them to a list."""
     doc_tree = etree.parse(path_to_doc) #parse the NAF file
     root = doc_tree.getroot()
+
+    lang = root.get('{http://www.w3.org/XML/1998/namespace}lang')
+    if lang not in languages:
+        return []
+
     frames = []
 
     if root.find('srl') in root:
         for predicate in root.find('srl'):
-            ext_ref_el = predicate.find(‘externalReferences/externalRef’)
-            uri = ext_ref_el.get(‘reference’)
-            frames.append(uri) #append the frames to a list
+            ext_ref_el = predicate.find('externalReferences/externalRef')
+            uri = ext_ref_el.get('reference')
+            label = frame_to_info[uri]['frame_label']
+            frames.append(label) #append the frames to a list
     return frames
 
-def frames_collection(collection):
+def frames_collection(collection, frame_to_info):
     """returns a list of frames extracted from a collection of NAF files."""
     collection_frames = []
 
     for file in collection: #iterate over the filepaths in a list
-        for frame in frames_naf_predicate(file): #iterate over the frames extracted from each NAF file
+        for frame in frames_naf_predicate(file, frame_to_info): #iterate over the frames extracted from each NAF file
             collection_frames.append(frame) #append the frames to a list
     return collection_frames
 
-def frames_collections(event_types,collection_of_collections):
+def frames_collections(event_types, collection_of_collections, frame_to_info):
     """returns a dictionary with the event type as key and list of frames as value"""
     event_type_frames_dict = {}
 
     for event_type, collection in zip(event_types, collection_of_collections): #iterate over each event type and the corresponding list of sets of filepaths
-        event_type_frames_dict[event_type] = frames_collection(collection) #add each event type and the corresponding list of frames as key-value pairs to a dictionary
+        event_type_frames_dict[event_type] = frames_collection(collection, frame_to_info) #add each event type and the corresponding list of frames as key-value pairs to a dictionary
     return event_type_frames_dict
 
 def contrastive_analysis(event_type_frames_dict):
@@ -85,6 +91,10 @@ def output_tfidf_to_format(tf_idf_dict):
 
     df.to_excel('tf_idf.xlsx', index=False) #export the table to an excel file
 
+def capitalize_frame(frame):
+    label = frame[0].upper() + frame[1:]
+    return label 
+
 def validation_to_json(tf_idf_dict, output_path):
     """exports the tf-idf dictionary to json with validation of typical frames"""
     typical_frame_dict = {}
@@ -92,10 +102,13 @@ def validation_to_json(tf_idf_dict, output_path):
     for key, value in tf_idf_dict.items(): #iterate over the key/value pairs of the tf_idf dictionary
         typical = []
         other = []
+        
         for frame in value[:10]: #iterate over the first n tuples in the list
-            typical.append(frame[0]) #append the frame of each tuple to a list
+            label = capitalize_frame(frame[0])
+            typical.append(label) #append the frame of each tuple to a list
         for frame in value[10:]: #iterate over the rest of the tuples in the list
-            other.append(frame[0]) #append the frame of each tuple to another list
+            label = capitalize_frame(frame[0])
+            other.append(label) #append the frame of each tuple to another list
         validation_dict = {'typical': typical, 'other': other} #create dictionary with both lists as values
         typical_frame_dict[key] = validation_dict #add the dictionary to typical_frame_dict with event types as keys
 

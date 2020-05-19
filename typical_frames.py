@@ -30,18 +30,19 @@ from typical_utils import frames_naf_predicate, frames_collection, frames_collec
 
 sys.path.append('../../')
 
-settings_path = arguments[‘--path_config_json’]
+settings_path = arguments['--path_config_json']
 settings = json.load(open(settings_path))
 
-ev_type_coll_path = settings[‘paths’][‘wd_representation_with_mwep’]
-ev_type_coll = pickle.load(open(ev_type_coll_path',
-                                                   'rb'))
+ev_type_coll_path = settings['paths']['wd_representation_with_mwep']
+ev_type_coll = pickle.load(open(ev_type_coll_path,
+                                'rb'))
 
 event_types = settings['event_types']
-wiki_output_dir = settings[‘paths’][‘data_release_naf_folder’]
-json_out = os.path.join(settings[‘paths’][‘lexicon_data’], ‘typical_frames.json’)
+wiki_output_dir = settings['paths']['data_release_naf_folder']
+json_out = settings['paths']['typical_frames_path']
 
-
+frame_to_info_path = os.path.join(settings['paths']['lexicon_data'], 'frame_to_info.json')
+frame_to_info = json.load(open(frame_to_info_path))
 
 set_of_paths_per_event_type = []
 
@@ -51,8 +52,8 @@ for event_type in event_types:
                                                                          verbose=1)
     set_of_paths_per_event_type.append(naf_paths) #create a list of sets with each set containing the naf_paths for an event_type
 
-entity_list = get_entity_list(event_types)
+#entity_list = get_entity_list(event_types)
 
-event_type_frames_dict = frames_collections(entity_list,set_of_paths_per_event_type)
+event_type_frames_dict = frames_collections(event_types, set_of_paths_per_event_type, frame_to_info)
 tf_idf_dict = contrastive_analysis(event_type_frames_dict)
 validation_to_json(tf_idf_dict, json_out)
