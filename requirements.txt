@@ -1,4 +1,2 @@
-lxml==4.3.0.0
-numpy==1.17.3
-scikit-learn==0.20.1
+lxml==4.6.3
 pandas==0.24.2
